@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "d3plot-compress"
+version = "0.1.0"
+description = "Lossless gzip compression for LS-DYNA d3plot binary result files"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+keywords = ["ls-dyna", "d3plot", "fea", "compression", "cae"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.scripts]
+d3plot-compress = "d3plot_compress.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["d3plot_compress*"]
