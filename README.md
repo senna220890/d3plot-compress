@@ -14,6 +14,19 @@ pip install d3plot-compress
 
 ### Command line
 
+After installing, try the `d3plot-compress` command first:
+
+```bash
+d3plot-compress compress /path/to/results
+```
+
+> **If you get "command not found" or "not recognized" (common on Windows)**, use this instead:
+> ```bash
+> python -m d3plot_compress.cli compress /path/to/results
+> ```
+
+#### All commands
+
 ```bash
 # Compress all d3plot files in a folder (replaces originals with .gz)
 d3plot-compress compress /path/to/results
@@ -27,6 +40,16 @@ d3plot-compress compress /path/to/results --level 9
 # Decompress (if you need raw files for a tool that doesn't support .gz)
 d3plot-compress decompress /path/to/results
 ```
+
+#### Windows example
+
+```cmd
+python -m d3plot_compress.cli compress "C:\Users\YourName\simulation_results"
+python -m d3plot_compress.cli decompress "C:\Users\YourName\simulation_results"
+```
+
+> **Tip (Windows):** To get the folder path easily, hold **Shift + right-click** the folder
+> in File Explorer and choose **"Copy as path"**, then paste it into the command.
 
 ### Python API
 
@@ -60,7 +83,17 @@ d3plot02.gz
 ...
 ```
 
-BETA CAE META post-processor recognises the `.gz` extension and decompresses on-the-fly, so animations play exactly as with the original files.
+BETA CAE META post-processor recognises the `.gz` extension and decompresses
+on-the-fly, so animations play exactly as with the original files.
+
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `command not found: d3plot-compress` | Use `python -m d3plot_compress.cli` instead |
+| `pip is not recognized` | Use `python -m pip install d3plot-compress` |
+| `No uncompressed d3plot files found` | Check the folder path — files must be named `d3plot`, `d3plot01`, `d3plot02`, etc. |
+| Files not opening in META after compress | Make sure files end in `.gz` — META reads these natively |
 
 ## Options
 
@@ -73,5 +106,6 @@ BETA CAE META post-processor recognises the `.gz` extension and decompresses on-
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.9+
 - No external dependencies (uses Python's built-in `gzip` module)
+```
