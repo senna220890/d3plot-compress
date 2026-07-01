@@ -1,8 +1,20 @@
 # d3plot-compress
 
-Lossless gzip compression for **LS-DYNA d3plot** binary result files.
+Compression for **LS-DYNA d3plot** binary result files. Two independent methods:
 
-Compressed files are read **directly** by BETA CAE META post-processor — no manual decompression needed before viewing animations.
+| Method | Command | Lossless? | Size | Who reads the output |
+|--------|---------|-----------|------|----------------------|
+| **gzip** | `compress` | ✅ Yes (byte-identical) | ~40–60% smaller | Post-processors that support gzip d3plot (e.g. BETA CAE META), on-the-fly |
+| **single precision** | `single` | ⚠️ Lossy (keeps ~7 sig. digits) | ~50% smaller | **Any** post-processor natively — the output is a normal d3plot |
+
+**Which do I use?**
+
+- **BETA CAE META** reads gzip d3plot directly → use `compress`.
+- **Tools that do NOT accept gzip d3plot** (e.g. Altair HyperView) → use `single`. It
+  produces a valid, half-size d3plot that opens natively — no plugin, no license,
+  no extension change.
+- **Want maximum reduction on a gzip-capable tool?** Run `single` first, then `compress`
+  on the result — the two stack.
 
 ## Install
 
@@ -41,6 +53,37 @@ d3plot-compress compress /path/to/results --level 9
 d3plot-compress decompress /path/to/results
 ```
 
+#### Single-precision compression (for HyperView and other non-gzip tools)
+
+Some post-processors — notably **Altair HyperView** — do **not** load gzip d3plot
+files. For those, use `single`, which rewrites a double-precision d3plot as single
+precision (~50% smaller). The result is a *normal* d3plot that opens natively in any
+post-processor.
+
+```bash
+# Writes converted files to  /path/to/results/compressed_d3plot/
+d3plot-compress single /path/to/results
+
+# Choose a different output folder
+d3plot-compress single /path/to/results --output-dir /path/to/results_single
+```
+
+Originals are never modified. If the input is already single precision, the tool
+reports it and writes nothing (there is nothing to shrink this way).
+
+> **Note:** single-precision conversion is *lossy* — it keeps ~7 significant digits,
+> which is standard and more than sufficient for visualization and animation. If you
+> need bit-for-bit identical data, use gzip (`compress`) instead.
+
+#### Maximum reduction (META and other gzip-capable tools)
+
+The two methods stack. Convert to single precision first, then gzip the result:
+
+```bash
+d3plot-compress single   /path/to/results
+d3plot-compress compress /path/to/results/compressed_d3plot
+```
+
 #### Windows example
 
 ```cmd
@@ -54,13 +97,18 @@ python -m d3plot_compress.cli decompress "C:\Users\YourName\simulation_results"
 ### Python API
 
 ```python
-from d3plot_compress import compress_folder, decompress_folder
+from d3plot_compress import (
+    compress_folder,
+    decompress_folder,
+    compress_folder_single,
+)
 
-# Compress
+# gzip (lossless)
 compress_folder("/path/to/results")
-
-# Decompress
 decompress_folder("/path/to/results")
+
+# single precision (lossy, ~50% smaller, opens in any post-processor)
+compress_folder_single("/path/to/results")  # → /path/to/results/compressed_d3plot/
 ```
 
 ## How it works
@@ -99,13 +147,23 @@ on-the-fly, so animations play exactly as with the original files.
 
 | Flag | Description |
 |------|-------------|
-| `--level 1-9` | Compression level (1=fastest, 9=smallest, default=6) |
-| `--keep-original` | Keep uncompressed files alongside `.gz` |
+| `--level 1-9` | (compress) Gzip level (1=fastest, 9=smallest, default=6) |
+| `--keep-original` | (compress) Keep uncompressed files alongside `.gz` |
 | `--keep-compressed` | (decompress) Keep `.gz` alongside restored files |
+| `--output-dir DIR` | (single) Output folder (default: `<folder>/compressed_d3plot`) |
 | `--quiet` | Suppress progress output |
+
+## Limitations of `single`
+
+Single-precision conversion covers standard structural models (solids, shells,
+thick shells, beams, node/element results, part & contact titles). It **aborts
+with a clear message rather than writing a corrupt file** if the model uses a
+feature not yet supported: SPH particles, airbag (CPM) particle data, CFD data,
+20-node hexahedra, 8-node shells with extra nodes, or temperature-rate data. If
+you hit one of these, please open an issue with the model type.
 
 ## Requirements
 
 - Python 3.9+
-- No external dependencies (uses Python's built-in `gzip` module)
+- No external dependencies (standard library only)
 ```
