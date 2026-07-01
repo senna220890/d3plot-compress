@@ -1,0 +1,49 @@
+name: Publish to PyPI
+
+# Publishes the package to PyPI whenever a version tag (e.g. v0.2.0) is pushed.
+#
+# Setup (one time):
+#   1. Create a PyPI API token at https://pypi.org/manage/account/token/
+#      (scope it to the "d3plot-compress" project once the project exists,
+#       or use an account-wide token for the very first upload).
+#   2. In GitHub: repo → Settings → Secrets and variables → Actions →
+#      "New repository secret". Name it exactly  PYPI_API_TOKEN  and paste
+#      the token value (the string that starts with "pypi-").
+#
+# Release a new version:
+#   1. Bump "version" in pyproject.toml and __version__ in
+#      d3plot_compress/__init__.py.
+#   2. git tag v0.2.0 && git push origin v0.2.0
+#   The tag push triggers this workflow, which builds and uploads to PyPI.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade build twine
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Check the built distributions
+        run: python -m twine check dist/*
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: python -m twine upload dist/*
