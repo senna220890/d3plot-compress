@@ -5,34 +5,58 @@ import sys
 from pathlib import Path
 
 from .core import compress_folder, decompress_folder
+from .precision import UnsupportedModel, compress_folder_single
 
 
 def main():
     parser = argparse.ArgumentParser(
         prog="d3plot-compress",
         description=(
-            "Lossless gzip compression for LS-DYNA d3plot files.\n"
-            "Compressed files are readable directly by BETA CAE META post-processor."
+            "Compression for LS-DYNA d3plot files.\n\n"
+            "  compress   : gzip (lossless). Readable by post-processors that\n"
+            "               support gzip d3plot (e.g. BETA CAE META).\n"
+            "  decompress : restore gzip'd files byte-for-byte.\n"
+            "  single     : convert double-precision d3plot to single precision\n"
+            "               (~50%% smaller, lossy). Output is a valid d3plot that\n"
+            "               ANY post-processor opens natively — useful for tools\n"
+            "               that do not accept gzip d3plot files."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # gzip (lossless) — for post-processors that read gzip d3plot
   d3plot-compress compress ./results
   d3plot-compress compress ./results --keep-original --level 9
   d3plot-compress decompress ./results
-  d3plot-compress decompress ./results --keep-compressed
+
+  # single precision (~50% smaller) — opens in ANY post-processor
+  d3plot-compress single ./results          # → ./results/compressed_d3plot/
+
+  # maximum reduction for gzip-capable tools: single, then gzip on top
+  d3plot-compress single ./results
+  d3plot-compress compress ./results/compressed_d3plot
 """,
     )
 
     parser.add_argument(
         "action",
-        choices=["compress", "decompress"],
-        help="compress: d3plot → d3plot.gz  |  decompress: d3plot.gz → d3plot",
+        choices=["compress", "decompress", "single"],
+        help=(
+            "compress: d3plot → d3plot.gz  |  "
+            "decompress: d3plot.gz → d3plot  |  "
+            "single: double → single precision d3plot"
+        ),
     )
     parser.add_argument(
         "folder",
         type=Path,
         help="Folder containing d3plot files",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=None,
+        help="(single) Output folder (default: <folder>/compressed_d3plot)",
     )
     parser.add_argument(
         "--keep-original",
@@ -75,6 +99,21 @@ Examples:
         )
         if verbose and results:
             print(f"\nDone. {len(results)} file(s) compressed.")
+    elif args.action == "single":
+        try:
+            compress_folder_single(
+                args.folder,
+                output_dir=args.output_dir,
+                verbose=verbose,
+            )
+        except (UnsupportedModel, ValueError) as e:
+            print(f"Error: {e}", file=sys.stderr)
+            print(
+                "No output written. This model uses a d3plot feature the "
+                "converter does not handle yet.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
     else:
         results = decompress_folder(
             args.folder,
