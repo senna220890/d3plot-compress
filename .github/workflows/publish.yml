@@ -20,6 +20,9 @@ on:
   push:
     tags:
       - "v*"
+  # Also allow publishing on demand (Actions tab → "Run workflow", or via API).
+  # Useful when a tag cannot be pushed directly.
+  workflow_dispatch:
 
 jobs:
   build-and-publish:
